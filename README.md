@@ -85,3 +85,38 @@ The name says it all, and the ID is mandatory.
 
 <h3>Advanced Usage</h3>
 The class also contains a few more public methods that you may find useful.
+
+<h4>query</h4>
+<pre>
+$simpleDB->query($queryString);
+</pre>
+
+This method is used to search for object matching a certain criteria. The query string is formatted like a GET string. 
+To continue with our car example, you might search for a car like so:
+
+<pre>
+$query = $simpleDB->query('color=blue&manufacturer=Honda');
+</pre>
+
+This will find all blue Hondas, returning an array of objects. Even though you may store complex multi-dimensional 
+objects with this class, the query function will only search the top level. Make sure to include variables that need to 
+be searched in the top level of your data schema to properly make use of this method.
+
+<h4>returnSingleId</h4>
+<pre>
+$car = $simpleDB->query('model=Civic');
+$carId = $simpleDB->returnSingleId($car);
+</pre>
+
+This method will give easy access to the ID of the object you retreived using <code>get</code>. Use it in a loop for 
+multiple objects.
+
+<h4>Timestamp</h4>
+<pre>
+$car = $simpleDB->query('model=Civic');
+$carId = $simpleDB->returnSingleId($car);
+$time = $simpleDB->timestamp($carId);
+</pre>
+
+This is a simple method for retreiving the last modified date on the object. It makes use of PHP's 
+<code>filemtime()</code>.
