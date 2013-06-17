@@ -2,7 +2,7 @@ SimpleDB
 ========
 SimpleDB is PHP class which creates a simple API for dealing with JSON document storage.
 
-<h2>Folder Schema</h2>
+<h3>Folder Schema</h3>
 
 <pre>
 PROJECT ROOT
@@ -25,7 +25,7 @@ Order Deny, Allow
 Deny From All
 </pre>
 
-Basic Usage:
+<h3>Basic Usage</h3>
 
 Instantiate the class with the name of the type of object you are storing. If you are storing cars, the code would look 
 like this:
