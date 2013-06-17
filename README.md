@@ -4,12 +4,12 @@ SimpleDB
 Folder Schema:
 
 <pre>
-PROJECT ROOT<br />
-&nbsp;&nbsp;&nbsp;&nbsp;models<br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Simple_DB.php<br />
-&nbsp;&nbsp;&nbsp;&nbsp;json<br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FOLDERS HERE<br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FILES HERE
+PROJECT ROOT
+    models
+        Simple_DB.php
+    json
+        FOLDERS HERE
+            FILES HERE
 </pre>
     
 If you create the folder structure above and autoload or include this class, everything will work out of the box. 
