@@ -111,7 +111,7 @@ $carId = $simpleDB->returnSingleId($car);
 This method will give easy access to the ID of the object you retreived using <code>get</code>. Use it in a loop for 
 multiple objects.
 
-<h4>Timestamp</h4>
+<h4>timestamp</h4>
 <pre>
 $car = $simpleDB->query('model=Civic');
 $carId = $simpleDB->returnSingleId($car);
@@ -120,3 +120,13 @@ $time = $simpleDB->timestamp($carId);
 
 This is a simple method for retreiving the last modified date on the object. It makes use of PHP's 
 <code>filemtime()</code>.
+
+<h4>getJSON</h4>
+
+<pre>
+$car = $simpleDB->query('model=Civic');
+$carId = $simpleDB->returnSingleId($car);
+$json = $simpleDB->getJSON($carId);
+</pre>
+
+This function returns the literal JSON string without decoding it.
