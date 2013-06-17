@@ -1,7 +1,7 @@
 SimpleDB
 ========
 
-Folder Schema:
+<h2>Folder Schema</h2>
 
 <pre>
 PROJECT ROOT
