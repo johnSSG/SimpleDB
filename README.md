@@ -1,5 +1,6 @@
 SimpleDB
 ========
+SimpleDB is PHP class which creates a simple API for dealing with JSON document storage.
 
 <h2>Folder Schema</h2>
 
