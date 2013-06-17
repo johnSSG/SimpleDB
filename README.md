@@ -45,6 +45,8 @@ Simple_DB::put($id, $content);
 Simple_DB::delete($id);
 </pre>
 
+<h3>Method Reference</h3>
+
 <h4>get</h4>
 If you have existing cars that you want to retrieve, you can do so like this:
 
