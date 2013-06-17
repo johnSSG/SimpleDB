@@ -55,7 +55,7 @@ $simpleDB->get();
 </pre>
 
 Calling <code>get</code> without the ID parameter will return an array of objects containing all of that type of object. 
-The code above will give you every car in storage. Calling <code>get<code> with an ID parameter returns a single object.
+The code above will give you every car in storage. Calling <code>get</code> with an ID parameter returns a single object.
 
 <h4>post</h4>
 
@@ -65,4 +65,23 @@ $simpleDB->post($content);
 
 This method creates a new "row" or JSON document in storage. It creates an ID for the document and posts your object 
 in plain text to that file. The file will be <code>YOURID.json</code>. You can pass post a string, array or object; 
-but it your data will get converted to a JSON object in the end.
+but your data will get converted to a JSON object in the end.
+
+<h4>put</h4>
+
+<pre>
+$simpleDB->put($id, $content);
+</pre>
+
+Similar to the <code>post</code> method, this is usually used to update an existing item in storage. This is not 
+necessarily the case, however. You can use this method to write an item with a custom ID if you'd like.
+
+<h4>delete</h4>
+<pre>
+$simpleDB->delete($id);
+</pre>
+
+The name says it all, and the ID is mandatory.
+
+<h3>Advanced Usage</h3>
+The class also contains a few more public methods that you may find useful.
