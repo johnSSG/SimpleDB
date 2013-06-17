@@ -45,7 +45,7 @@ Simple_DB::put($id, $content);
 Simple_DB::delete($id);
 </pre>
 
-GET
+<h4>get</h4>
 If you have existing cars that you want to retrieve, you can do so like this:
 
 <pre>
@@ -55,12 +55,12 @@ $simpleDB->get();
 Calling <code>get</code> without the ID parameter will return an array of objects containing all of that type of object. 
 The code above will give you every car in storage. Calling <code>get<code> with an ID parameter returns a single object.
 
-POST
+<h4>post</h4>
 
 <pre>
 $simpleDB->post($content);
 </pre>
 
-Post creates a new "row" or JSON document in storage. It creates an ID for the document and posts your object in plain 
-text to that file. The file will be <code>YOURID.json</code>. You can pass post a string, array or object; but it your 
-data will get converted to a JSON object in the end.
+This method creates a new "row" or JSON document in storage. It creates an ID for the document and posts your object 
+in plain text to that file. The file will be <code>YOURID.json</code>. You can pass post a string, array or object; 
+but it your data will get converted to a JSON object in the end.
