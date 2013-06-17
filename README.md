@@ -18,7 +18,7 @@ If not, you will need to edit the constructor to tell the class where you want t
 location is a json folder in the project root. In other words, the storage is located at the same folder level as 
 the folder which contains your classes.
 
-If you are interested in protecting your data from prying eyes, use a .htaccess file in the json folder:
+If you are interested in protecting your data from prying eyes, use an .htaccess file in the json folder:
 
 <pre>
 Order Deny, Allow
