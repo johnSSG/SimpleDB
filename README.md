@@ -26,6 +26,13 @@ Deny From All
 
 Usage:
 
+Instantiate the class with the name of the type of object you are storing. If you are storing cars, the code would look 
+like this:
+
+<pre>
+$simpleDB = new Simple_DB('car');
+</pre>
+
 The class contains four basic methods which attempt to mimic HTTP methods:
 
 <pre>
@@ -34,3 +41,12 @@ Simple_DB::post($content);
 Simple_DB::put($id, $content);
 Simple_DB::delete($id);
 </pre>
+
+If you have existing cars that you want to retrieve, you can do so like this:
+
+<pre>
+$simpleDB->get();
+</pre>
+
+Calling <code>get</code> without the ID parameter will return an array of objects containing all of that type of object. 
+The code above will give you every car in storage.
