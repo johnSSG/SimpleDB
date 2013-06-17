@@ -91,7 +91,7 @@ The class also contains a few more public methods that you may find useful.
 $simpleDB->query($queryString);
 </pre>
 
-This method is used to search for object matching a certain criteria. The query string is formatted like a GET string. 
+This method is used to search for objects matching a certain criteria. The query string is formatted like a GET string. 
 To continue with our car example, you might search for a car like so:
 
 <pre>
