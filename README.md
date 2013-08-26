@@ -21,8 +21,8 @@ the folder which contains your classes.
 If you are interested in protecting your data from prying eyes, use an .htaccess file in the json folder:
 
 <pre>
-Order Deny, Allow
-Deny From All
+Order deny,allow
+Deny from all
 </pre>
 
 <h3>Basic Usage</h3>
