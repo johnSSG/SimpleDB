@@ -142,13 +142,15 @@ class Simple_DB {
 	private function objectToQueryString($obj) {
 		$output = '';
 		$count  = 0;
-		foreach($obj as $key => $val) :
-			if(is_string($val)) :
-				if($count) $output .= '&';
-				$output .= $key.'='.$val;
-				$count = $count + 1;
-			endif;
-		endforeach;
+		if(is_object($obj) || is_array($obj)) :
+			foreach($obj as $key => $val) :
+				if(is_string($val)) :
+					if($count) $output .= '&';
+					$output .= $key.'='.$val;
+					$count = $count + 1;
+				endif;
+			endforeach;
+		endif;
 		return $output;
 	}
 	
