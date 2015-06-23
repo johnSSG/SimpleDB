@@ -144,11 +144,10 @@ class Simple_DB {
 		$count  = 0;
 		if(is_object($obj) || is_array($obj)) :
 			foreach($obj as $key => $val) :
-				if(is_string($val)) :
-					if($count) $output .= '&';
-					$output .= $key.'='.$val;
-					$count = $count + 1;
-				endif;
+				$val = (string) $val;
+				if($count) $output .= '&';
+				$output .= $key.'='.$val;
+				$count = $count + 1;
 			endforeach;
 		endif;
 		return $output;
