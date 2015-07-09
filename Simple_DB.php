@@ -140,17 +140,7 @@ class Simple_DB {
 	}
 	
 	private function objectToQueryString($obj) {
-		$output = '';
-		$count  = 0;
-		if(is_object($obj) || is_array($obj)) :
-			foreach($obj as $key => $val) :
-				$val = (string) $val;
-				if($count) $output .= '&';
-				$output .= $key.'='.$val;
-				$count = $count + 1;
-			endforeach;
-		endif;
-		return $output;
+		return http_build_query($obj);
 	}
 	
 	public function post($c) {
