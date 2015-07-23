@@ -31,7 +31,7 @@ class Simple_DB {
 		if(file_exists($this->dir.$this->type.$file.'.json') === false) :
 			return $file;
 		else :
-			$this->check(uniqid());
+			return $this->check(uniqid());
 		endif;		
 	}
 	
@@ -39,67 +39,47 @@ class Simple_DB {
 		$file = $id;
 		if(strpos($id, '.json') === false) $file = $id.'.json';
 		$del = unlink($this->dir.$this->type.$file);
-		if($del) :
-			return true;
-		else :
-			return false;
-		endif;
+		return ($del ? true : false);
 	}
 	
-	public function get($file = '') {
-		$file = str_replace('.json', '', $file).'.json';
-		if($file !== '.json') :
-			if(file_exists($this->dir.$this->type.$file)) :
-				return json_decode(file_get_contents($this->dir.$this->type.$file));
-			else :
-				return false;
-			endif;
-		endif;
+	public function get($file = '', $json = false) {
 		$output = array();
-		$scan   = $this->getFiles();
-		foreach($scan as $file) :
-			$id   = str_replace('.json', '', $file);
-			$file = str_replace('.json', '', $file).'.json';
-			$output["$id"] = json_decode(file_get_contents($this->dir.$this->type.$file));
-		endforeach;
-		if(empty($output)) :
-			return false;
+		if($file) :
+			if(gettype($file) == 'string') :
+				$file = str_replace('.json', '', $file).'.json';
+				if($file !== '.json') :
+					if(file_exists($this->dir.$this->type.$file)) :
+						return ($json ? file_get_contents($this->dir.$this->type.$file) : json_decode(file_get_contents($this->dir.$this->type.$file)));
+					endif;
+				endif;
+			endif;
 		else :
-			return $output;
+			$scan = $this->getFiles();
+			foreach($scan as &$file) :
+				$id   = str_replace('.json', '', $file);
+				$file = $id.'.json';
+				$output[$id] = ($json ? file_get_contents($this->dir.$this->type.$file) : json_decode(file_get_contents($this->dir.$this->type.$file)));
+			endforeach;			
 		endif;
+		return (empty($output) ? false : $output);
 	}
 	
 	public function getJSON($file = '') {
-		$file = str_replace('.json', '', $file).'.json';
-		if($file !== '.json') :
-			if(file_exists($this->dir.$this->type.$file)) :
-				return file_get_contents($this->dir.$this->type.$file);
-			else :
-				return false;
-			endif;
-		endif;
-		$output = array();
-		$scan   = $this->getFiles();
-		foreach($scan as $file) :
-			$id   = str_replace('.json', '', $file);
-			$file = str_replace('.json', '', $file).'.json';
-			$output["$id"] = file_get_contents($this->dir.$this->type.$file);
-		endforeach;
-		if(empty($output)) :
-			return false;
-		else :
-			return $this->shiftArray($output);
-		endif;		
+		$get = $this->get($file, true);
 	}
 	
-	private function getFiles() {
+	public function getFiles() {
 		$output = array();
 		$scan   = scandir($this->dir.$this->type);
-		foreach($scan as $file) :
+		$removed = array(
+			'error_log',
+			'_notes',
+			'.htaccess',
+			'.htpasswd'
+		);
+		foreach($scan as &$file) :
 			if(is_dir($this->dir.$this->type.$file) === false) :
-				if($file !== 'error_log' && $file !== '_notes' && $file !== '.htaccess') :
-					$output[] = $file;
-				endif;
+				if(in_array($file, $removed) === false) $output[] = $file;
 			endif;
 		endforeach;
 		return $output;
@@ -139,40 +119,17 @@ class Simple_DB {
 		return $result;		
 	}
 	
-	private function objectToQueryString($obj) {
-		return http_build_query($obj);
-	}
-	
 	public function post($c) {
-		if(is_object($c) === false) :
-			$con = (object) $c;
-		else :
-			$con = $c;
-		endif;
-		$content = $this->indent(json_encode($con));
-		$file    = $this->check(uniqid());
-		$put     = file_put_contents($this->dir.$this->type.$file.'.json', $content);
-		if($put) :
-			return str_replace('.json', '', $file);
-		else :
-			return false;
-		endif;
+		$file = $this->check(uniqid());
+		$put  = file_put_contents($this->dir.$this->type.$file.'.json', $this->indent(json_encode((object) $c)));
+		return ($put ? $file : false);
 	}
 	
 	public function put($id, $c) {
-		if(is_object($c) === false) :
-			$con = (object) $c;
-		else :
-			$con = $c;
-		endif;
-		$content = $this->indent(json_encode($con));
+		$content = $this->indent(json_encode((object) $c));
 		$file    = str_replace('.json', '', $id).'.json';
 		$put     = file_put_contents($this->dir.$this->type.$file, $content);
-		if($put) :
-			return str_replace('.json', '', $file);
-		else :
-			return json_decode(file_get_contents($this->dir.$this->type.$file.'.json'));
-		endif;
+		return ($put ? (object) $c : false);
 	}
 	
 	public function query($q) {
@@ -181,25 +138,15 @@ class Simple_DB {
 		$get    = $this->get();
 		$output = array();
 		if($get) :
-			foreach($get as $key => $val) :
-				$objectString = $this->objectToQueryString($val);
-				if($this->testQueryArray($arr, $objectString)) $output["$key"] = $val;
+			foreach($get as $key => &$val) :
+				if($this->testQueryArray($arr, urldecode(http_build_query($val)))) $output[$key] = $val;
 			endforeach;
 		endif;
-		if(empty($output)) :
-			return false;
-		else :
-			return $output;
-		endif;
+		return (empty($output) ? false : $output);
 	}
 	
 	public function returnSingleId($a) {
-		if($a) :
-			$arr = array_keys($a);
-			return array_shift($arr);
-		else :
-			return false;
-		endif;
+		return ($a ? array_shift(@array_keys($a)) : false);
 	}
 	
 	private function shiftArray($arr) {
@@ -218,13 +165,9 @@ class Simple_DB {
 		$count = count($testArray);
 		$testCount = 0;
 		foreach($testArray as $value) :
-			if(preg_match('~\b' . $value . '\b~i', $objectString)) $testCount++;
+			if(preg_match('~\b' . preg_quote($value) . '\b~i', $objectString)) $testCount++;
 		endforeach;
-		if($count == $testCount) :
-			return true;
-		else :
-			return false;
-		endif;
+		return ($count == $testCount ? true : false);
 	}
 	
 	public function timestamp($id) {
