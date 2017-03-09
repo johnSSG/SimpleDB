@@ -94,9 +94,11 @@ class Simple_DB {
 	public function put($id, $c) {
 		if($id) {
 			$content = json_encode((object) $c, JSON_PRETTY_PRINT);
-			$file    = str_replace('.json', '', $id).'.json';
-			$put     = file_put_contents($this->dir.$this->type.$file, $content);
-			return ($put ? (object) $c : false);
+			if($content) {
+				$file    = str_replace('.json', '', $id).'.json';
+				$put     = file_put_contents($this->dir.$this->type.$file, $content);
+				return ($put ? (object) $c : false);
+			}
 		}
 		return false;
 	}
