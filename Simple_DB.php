@@ -145,4 +145,3 @@ class Simple_DB {
 		return @filemtime($this->dir.$this->type.$id.'.json');
 	}
 }
-?>
