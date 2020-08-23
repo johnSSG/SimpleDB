@@ -117,7 +117,7 @@ class Simple_DB {
 	}
 	
 	public function returnSingleId($a) {
-		return ($a ? array_shift(@array_keys($a)) : false);
+		return ($a ? @array_shift(@array_keys($a)) : false);
 	}
 	
 	private function shiftArray($arr) {
