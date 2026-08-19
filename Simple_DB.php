@@ -1,147 +1,784 @@
 <?php
-class Simple_DB {
-    /*Copyright (c) 2013 Simplicity Solutions Group http://simplicitysolutionsgroup.com
 
-	Permission is hereby granted, free of charge, to any person obtaining a copy
-	of this software and associated documentation files (the "Software"), to deal
-	in the Software without restriction, including without limitation the rights
-	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-	copies of the Software, and to permit persons to whom the Software is
-	furnished to do so, subject to the following conditions:
+/*
+ * Copyright (c) 2026 Simplicity Solutions Group
+ * http://simplicity.online/
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
 
-	The above copyright notice and this permission notice shall be included in
-	all copies or substantial portions of the Software.
+/**
+ * A small JSON-file database with one record per file.
+ *
+ * The original public API is retained. An optional second constructor argument
+ * may be used to choose the JSON root directory; otherwise ../json relative to
+ * this file is used, matching the original models/Simple_DB.php layout.
+ */
+class Simple_DB
+{
+    /** @var string JSON root directory with a trailing separator. */
+    public $dir;
 
-	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-	THE SOFTWARE. */
-	
-	function __construct($type) {
-		$path       = DIRECTORY_SEPARATOR.'models'.DIRECTORY_SEPARATOR.'Simple_DB.php';
-		$this->dir  = str_replace($path, '', realpath(__FILE__)).DIRECTORY_SEPARATOR.'json'.DIRECTORY_SEPARATOR;
-		$this->type = $type.DIRECTORY_SEPARATOR;
-		if(file_exists($this->dir.$type) === false) mkdir($this->dir.$type);
-	}
-	
-	private function check($file) {
-		if(file_exists($this->dir.$this->type.$file.'.json') === false) :
-			return $file;
-		else :
-			return $this->check(uniqid());
-		endif;		
-	}
-	
-	public function delete($id) {
-		$file = $id;
-		if(strpos($id, '.json') === false) $file = $id.'.json';
-		$del = unlink($this->dir.$this->type.$file);
-		return ($del ? true : false);
-	}
-	
-	public function get($file = '', $json = false) {
-		$output = array();
-		if($file) :
-			if(gettype($file) == 'string') :
-				$file = str_replace('.json', '', $file).'.json';
-				if($file !== '.json') :
-					if(file_exists($this->dir.$this->type.$file)) :
-						return ($json ? file_get_contents($this->dir.$this->type.$file) : json_decode(file_get_contents($this->dir.$this->type.$file)));
-					endif;
-				endif;
-			endif;
-		else :
-			$scan = $this->getFiles();
-			foreach($scan as &$file) :
-				$id   = str_replace('.json', '', $file);
-				$file = $id.'.json';
-				$output[$id] = ($json ? file_get_contents($this->dir.$this->type.$file) : json_decode(file_get_contents($this->dir.$this->type.$file)));
-			endforeach;			
-		endif;
-		return (empty($output) ? false : $output);
-	}
-	
-	public function getJSON($file = '') {
-		$get = $this->get($file, true);
-	}
-	
-	public function getFiles() {
-		$output = array();
-		$scan   = scandir($this->dir.$this->type);
-		$removed = array(
-			'error_log',
-			'_notes',
-			'.htaccess',
-			'.htpasswd'
-		);
-		foreach($scan as &$file) :
-			if(is_dir($this->dir.$this->type.$file) === false) :
-				if(in_array($file, $removed) === false) $output[] = $file;
-			endif;
-		endforeach;
-		return $output;
-	}
-	
-	public function post($c) {
-		$file = $this->check(uniqid());
-		$put  = file_put_contents($this->dir.$this->type.$file.'.json', json_encode((object) $c, JSON_PRETTY_PRINT));
-		return ($put ? $file : false);
-	}
-	
-	public function put($id, $c) {
-		if($id) {
-			$content = json_encode((object) $c, JSON_PRETTY_PRINT);
-			if($content) {
-				$file    = str_replace('.json', '', $id).'.json';
-				$put     = file_put_contents($this->dir.$this->type.$file, $content);
-				return ($put ? (object) $c : false);
-			}
-		}
-		return false;
-	}
-	
-	public function query($q) {
-		$arr    = array();
-		parse_str($q, $arr);
-		$get    = $this->get();
-		$output = array();
-		if($get) :
-			foreach($get as $key => &$val) :
-				if($this->testQueryArray($arr, urldecode(http_build_query($val)))) $output[$key] = $val;
-			endforeach;
-		endif;
-		return (empty($output) ? false : $output);
-	}
-	
-	public function returnSingleId($a) {
-		return ($a ? @array_shift(@array_keys($a)) : false);
-	}
-	
-	private function shiftArray($arr) {
-		if(count($arr) == 1) :
-			return array_shift($arr);
-		else :
-			return $arr;
-		endif;
-	}
-	
-	private function testQueryArray($array, $objectString) {
-		$testArray = array();
-		foreach($array as $key => $value) :
-			$testArray[] = $key.'='.$value;
-		endforeach;
-		$count = count($testArray);
-		$testCount = 0;
-		foreach($testArray as $value) :
-			if(preg_match('~\b' . preg_quote($value) . '\b~i', $objectString)) $testCount++;
-		endforeach;
-		return ($count == $testCount ? true : false);
-	}
-	
-	public function timestamp($id) {
-		return @filemtime($this->dir.$this->type.$id.'.json');
-	}
+    /** @var string Collection name with a trailing separator. */
+    public $type;
+
+    /** @var string */
+    private $collectionDir;
+
+    /** @var string */
+    private $lockFile;
+
+    /** @var string|null */
+    private $lastError;
+
+    /**
+     * Create the JSON root directory and an Apache 2.4 .htaccess file.
+     *
+     * Existing .htaccess files are preserved unless replacement is explicitly
+     * requested. Collection directories are created by the constructor because
+     * setup() does not know which collection names the application will use.
+     *
+     * @param string|null $baseDirectory  Optional JSON root directory.
+     * @param bool        $replaceHtaccess Replace an existing regular file.
+     * @return string Resolved absolute JSON root directory.
+     */
+    public static function setup($baseDirectory = null, $replaceHtaccess = false)
+    {
+        $root = self::resolveBaseDirectory($baseDirectory);
+        $path = $root . DIRECTORY_SEPARATOR . '.htaccess';
+        $content = "# Generated by SimpleDB.\nRequire all denied\n";
+
+        if (is_link($path)) {
+            throw new RuntimeException('Refusing to use a symbolic link as the .htaccess file.');
+        }
+
+        if (file_exists($path)) {
+            if (!is_file($path)) {
+                throw new RuntimeException('The .htaccess path exists but is not a regular file.');
+            }
+
+            if (!$replaceHtaccess) {
+                return $root;
+            }
+
+            self::replaceSetupFile($root, $path, $content);
+            return $root;
+        }
+
+        if (!self::createSetupFile($path, $content)) {
+            // Another process may have completed setup after our existence check.
+            clearstatcache(true, $path);
+            if (is_file($path) && !is_link($path)) {
+                return $root;
+            }
+
+            throw new RuntimeException('Unable to create the JSON root .htaccess file.');
+        }
+
+        return $root;
+    }
+
+    /**
+     * @param string      $type          Collection name.
+     * @param string|null $baseDirectory Optional JSON root directory.
+     */
+    public function __construct($type, $baseDirectory = null)
+    {
+        if (!is_string($type) || !preg_match('/\A[A-Za-z0-9_-]{1,64}\z/', $type)) {
+            throw new InvalidArgumentException(
+                'The database type must contain only letters, numbers, underscores, and hyphens.'
+            );
+        }
+
+        $root = self::resolveBaseDirectory($baseDirectory);
+
+        $this->collectionDir = $root . DIRECTORY_SEPARATOR . $type;
+        if (!is_dir($this->collectionDir)
+            && !@mkdir($this->collectionDir, 0775, true)
+            && !is_dir($this->collectionDir)
+        ) {
+            throw new RuntimeException('Unable to create the database collection directory.');
+        }
+
+        $this->dir = $root . DIRECTORY_SEPARATOR;
+        $this->type = $type . DIRECTORY_SEPARATOR;
+        $this->lockFile = $this->collectionDir . DIRECTORY_SEPARATOR . '.simple-db.lock';
+        $this->lastError = null;
+    }
+
+    /**
+     * Return the most recent non-exception error reported by an operation.
+     *
+     * @return string|null
+     */
+    public function getLastError()
+    {
+        return $this->lastError;
+    }
+
+    /**
+     * Delete a record.
+     *
+     * @param string $id
+     * @return bool
+     */
+    public function delete($id)
+    {
+        $this->lastError = null;
+        $id = $this->normalizeId($id);
+        if ($id === false) {
+            return false;
+        }
+
+        $lock = $this->acquireLock(LOCK_EX);
+        if ($lock === false) {
+            return false;
+        }
+
+        try {
+            $path = $this->recordPath($id);
+            if (!is_file($path) || is_link($path)) {
+                return $this->fail('Record not found.');
+            }
+
+            if (!@unlink($path)) {
+                return $this->fail('Unable to delete the record.');
+            }
+
+            return true;
+        } finally {
+            $this->releaseLock($lock);
+        }
+    }
+
+    /**
+     * Read one record or every record.
+     *
+     * @param string $file Record ID, optionally ending in .json.
+     * @param bool   $json Return JSON strings instead of decoded objects.
+     * @return object|string|array|false
+     */
+    public function get($file = '', $json = false)
+    {
+        $this->lastError = null;
+        $lock = $this->acquireLock(LOCK_SH);
+        if ($lock === false) {
+            return false;
+        }
+
+        try {
+            if ($file !== '' && $file !== null) {
+                $id = $this->normalizeId($file);
+                if ($id === false) {
+                    return false;
+                }
+
+                return $this->readRecordUnlocked($id, (bool) $json);
+            }
+
+            $output = array();
+            foreach ($this->getFilesUnlocked() as $recordFile) {
+                $id = substr($recordFile, 0, -5);
+                $value = $this->readRecordUnlocked($id, (bool) $json);
+                if ($value === false) {
+                    // A corrupt or unreadable record should not make valid records vanish.
+                    continue;
+                }
+                $output[$id] = $value;
+            }
+
+            return empty($output) ? false : $output;
+        } finally {
+            $this->releaseLock($lock);
+        }
+    }
+
+    /**
+     * Read one record or all records as JSON strings.
+     *
+     * @param string $file
+     * @return string|array|false
+     */
+    public function getJSON($file = '')
+    {
+        return $this->get($file, true);
+    }
+
+    /**
+     * List only valid, regular JSON record files.
+     *
+     * @return array
+     */
+    public function getFiles()
+    {
+        $this->lastError = null;
+        $lock = $this->acquireLock(LOCK_SH);
+        if ($lock === false) {
+            return array();
+        }
+
+        try {
+            return $this->getFilesUnlocked();
+        } finally {
+            $this->releaseLock($lock);
+        }
+    }
+
+    /**
+     * Create a record and return its cryptographically random ID.
+     *
+     * @param mixed $content
+     * @return string|false
+     */
+    public function post($content)
+    {
+        $this->lastError = null;
+        $json = $this->encode($content);
+        if ($json === false) {
+            return false;
+        }
+
+        $lock = $this->acquireLock(LOCK_EX);
+        if ($lock === false) {
+            return false;
+        }
+
+        try {
+            for ($attempt = 0; $attempt < 10; $attempt++) {
+                $id = $this->newId();
+                if ($id === false) {
+                    return false;
+                }
+
+                $path = $this->recordPath($id);
+                if (file_exists($path) || is_link($path)) {
+                    continue;
+                }
+
+                if ($this->writeAtomically($path, $json)) {
+                    return $id;
+                }
+
+                return false;
+            }
+
+            return $this->fail('Unable to allocate a unique record ID.');
+        } finally {
+            $this->releaseLock($lock);
+        }
+    }
+
+    /**
+     * Replace an existing record.
+     *
+     * @param string $id
+     * @param mixed  $content
+     * @return object|false
+     */
+    public function put($id, $content)
+    {
+        $this->lastError = null;
+        $id = $this->normalizeId($id);
+        if ($id === false) {
+            return false;
+        }
+
+        $json = $this->encode($content);
+        if ($json === false) {
+            return false;
+        }
+
+        $lock = $this->acquireLock(LOCK_EX);
+        if ($lock === false) {
+            return false;
+        }
+
+        try {
+            $path = $this->recordPath($id);
+            if (!is_file($path) || is_link($path)) {
+                return $this->fail('Record not found.');
+            }
+
+            if (!$this->writeAtomically($path, $json)) {
+                return false;
+            }
+
+            return is_object($content) ? $content : (object) $content;
+        } finally {
+            $this->releaseLock($lock);
+        }
+    }
+
+    /**
+     * Find records whose actual fields exactly match query criteria.
+     * Matching of scalar string values is case-insensitive for compatibility.
+     * Nested query fields such as address[city]=Tampa are supported.
+     * Criteria may be supplied as a URL query string, associative array, or
+     * object. Nested arrays and objects are supported.
+     *
+     * @param string|array|object $query
+     * @return array|false
+     */
+    public function query($query)
+    {
+        $this->lastError = null;
+
+        if (is_string($query)) {
+            if ($query === '') {
+                return $this->fail('The query must not be empty.');
+            }
+
+            $criteria = array();
+            parse_str($query, $criteria);
+        } elseif (is_array($query) || is_object($query)) {
+            $criteria = $this->normalizeCriteria($query);
+        } else {
+            return $this->fail('The query must be a query string, array, or object.');
+        }
+
+        if (empty($criteria)) {
+            return $this->fail('The query contains no searchable fields.');
+        }
+
+        $records = $this->get();
+        if ($records === false) {
+            return false;
+        }
+
+        $output = array();
+        foreach ($records as $id => $record) {
+            if ($this->matchesCriteria($record, $criteria)) {
+                $output[$id] = $record;
+            }
+        }
+
+        return empty($output) ? false : $output;
+    }
+
+    /**
+     * Return the first ID from a query result.
+     *
+     * @param array $records
+     * @return string|int|false
+     */
+    public function returnSingleId($records)
+    {
+        if (!is_array($records) || empty($records)) {
+            return false;
+        }
+
+        foreach ($records as $id => $unused) {
+            return $id;
+        }
+
+        return false;
+    }
+
+    /**
+     * Return a record's modification timestamp.
+     *
+     * @param string $id
+     * @return int|false
+     */
+    public function timestamp($id)
+    {
+        $this->lastError = null;
+        $id = $this->normalizeId($id);
+        if ($id === false) {
+            return false;
+        }
+
+        $lock = $this->acquireLock(LOCK_SH);
+        if ($lock === false) {
+            return false;
+        }
+
+        try {
+            $path = $this->recordPath($id);
+            if (!is_file($path) || is_link($path)) {
+                return $this->fail('Record not found.');
+            }
+
+            clearstatcache(true, $path);
+            $timestamp = @filemtime($path);
+            if ($timestamp === false) {
+                return $this->fail('Unable to read the record timestamp.');
+            }
+
+            return $timestamp;
+        } finally {
+            $this->releaseLock($lock);
+        }
+    }
+
+    /** @return string */
+    private static function resolveBaseDirectory($baseDirectory)
+    {
+        if ($baseDirectory === null) {
+            $baseDirectory = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'json';
+        }
+
+        if (!is_string($baseDirectory) || $baseDirectory === '') {
+            throw new InvalidArgumentException('The base directory must be a non-empty string.');
+        }
+
+        if (!is_dir($baseDirectory)
+            && !@mkdir($baseDirectory, 0775, true)
+            && !is_dir($baseDirectory)
+        ) {
+            throw new RuntimeException('Unable to create the JSON root directory.');
+        }
+
+        $root = realpath($baseDirectory);
+        if ($root === false || !is_dir($root)) {
+            throw new RuntimeException('Unable to resolve the JSON root directory.');
+        }
+
+        return $root;
+    }
+
+    /** @return bool */
+    private static function createSetupFile($path, $content)
+    {
+        $handle = @fopen($path, 'x+b');
+        if ($handle === false) {
+            return false;
+        }
+
+        $locked = false;
+        $success = false;
+
+        try {
+            $locked = @flock($handle, LOCK_EX);
+            if (!$locked) {
+                return false;
+            }
+
+            $length = strlen($content);
+            $offset = 0;
+            while ($offset < $length) {
+                $written = @fwrite($handle, substr($content, $offset));
+                if ($written === false || $written === 0) {
+                    return false;
+                }
+                $offset += $written;
+            }
+
+            if (!@fflush($handle)) {
+                return false;
+            }
+
+            @chmod($path, 0644);
+            $success = true;
+            return true;
+        } finally {
+            if ($locked) {
+                @flock($handle, LOCK_UN);
+            }
+            fclose($handle);
+
+            if (!$success && file_exists($path) && !is_link($path)) {
+                @unlink($path);
+            }
+        }
+    }
+
+    private static function replaceSetupFile($directory, $path, $content)
+    {
+        $temporary = @tempnam($directory, '.simple-db-setup-');
+        if ($temporary === false) {
+            throw new RuntimeException('Unable to create a temporary .htaccess file.');
+        }
+
+        try {
+            $written = @file_put_contents($temporary, $content, LOCK_EX);
+            if ($written === false || $written !== strlen($content)) {
+                throw new RuntimeException('Unable to write the complete .htaccess file.');
+            }
+
+            @chmod($temporary, 0644);
+            if (!@rename($temporary, $path)) {
+                throw new RuntimeException('Unable to replace the .htaccess file atomically.');
+            }
+
+            $temporary = null;
+        } finally {
+            if ($temporary !== null && file_exists($temporary)) {
+                @unlink($temporary);
+            }
+        }
+    }
+
+    /** @return array */
+    private function getFilesUnlocked()
+    {
+        $scan = @scandir($this->collectionDir);
+        if ($scan === false) {
+            $this->fail('Unable to scan the collection directory.');
+            return array();
+        }
+
+        $output = array();
+        foreach ($scan as $file) {
+            if (substr($file, -5) !== '.json') {
+                continue;
+            }
+
+            $id = substr($file, 0, -5);
+            if (!$this->isValidId($id)) {
+                continue;
+            }
+
+            $path = $this->recordPath($id);
+            if (is_file($path) && !is_link($path)) {
+                $output[] = $file;
+            }
+        }
+
+        natcasesort($output);
+        return array_values($output);
+    }
+
+    /** @return object|string|false */
+    private function readRecordUnlocked($id, $json)
+    {
+        $path = $this->recordPath($id);
+        if (!is_file($path) || is_link($path)) {
+            return $this->fail('Record not found.');
+        }
+
+        $content = @file_get_contents($path);
+        if ($content === false) {
+            return $this->fail('Unable to read the record.');
+        }
+
+        if ($json) {
+            return $content;
+        }
+
+        $decoded = json_decode($content);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return $this->fail('The record contains invalid JSON: ' . json_last_error_msg());
+        }
+
+        return $decoded;
+    }
+
+    /** @return string|false */
+    private function encode($content)
+    {
+        $value = is_object($content) ? $content : (object) $content;
+        $json = json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+        if ($json === false) {
+            return $this->fail('Unable to encode JSON: ' . json_last_error_msg());
+        }
+
+        return $json;
+    }
+
+    /** @return bool */
+    private function writeAtomically($path, $content)
+    {
+        $temporary = @tempnam($this->collectionDir, '.simple-db-');
+        if ($temporary === false) {
+            return $this->fail('Unable to create a temporary record file.');
+        }
+
+        try {
+            $written = @file_put_contents($temporary, $content, LOCK_EX);
+            if ($written === false || $written !== strlen($content)) {
+                return $this->fail('Unable to write the complete record.');
+            }
+
+            // tempnam creates mode 0600; records use the conventional 0664 mode.
+            @chmod($temporary, 0664);
+
+            if (!@rename($temporary, $path)) {
+                return $this->fail('Unable to publish the record atomically.');
+            }
+
+            $temporary = null;
+            return true;
+        } finally {
+            if ($temporary !== null && file_exists($temporary)) {
+                @unlink($temporary);
+            }
+        }
+    }
+
+    /** @return resource|false */
+    private function acquireLock($operation)
+    {
+        $handle = @fopen($this->lockFile, 'c+');
+        if ($handle === false) {
+            return $this->fail('Unable to open the collection lock.');
+        }
+
+        if (!@flock($handle, $operation)) {
+            fclose($handle);
+            return $this->fail('Unable to lock the collection.');
+        }
+
+        return $handle;
+    }
+
+    /** @param resource $handle */
+    private function releaseLock($handle)
+    {
+        @flock($handle, LOCK_UN);
+        fclose($handle);
+    }
+
+    /** @return string|false */
+    private function normalizeId($id)
+    {
+        if (!is_string($id) && !is_int($id)) {
+            return $this->fail('The record ID must be a string or integer.');
+        }
+
+        $id = (string) $id;
+        if (substr($id, -5) === '.json') {
+            $id = substr($id, 0, -5);
+        }
+
+        if (!$this->isValidId($id)) {
+            return $this->fail('The record ID contains invalid characters.');
+        }
+
+        return $id;
+    }
+
+    /** @return bool */
+    private function isValidId($id)
+    {
+        return is_string($id)
+            && (bool) preg_match('/\A[A-Za-z0-9_-]{1,128}\z/', $id);
+    }
+
+    /** @return string */
+    private function recordPath($id)
+    {
+        return $this->collectionDir . DIRECTORY_SEPARATOR . $id . '.json';
+    }
+
+    /** @return string|false */
+    private function newId()
+    {
+        if (function_exists('random_bytes')) {
+            try {
+                return bin2hex(random_bytes(16));
+            } catch (Exception $exception) {
+                return $this->fail('Unable to generate a secure record ID.');
+            }
+        }
+
+        if (function_exists('openssl_random_pseudo_bytes')) {
+            $strong = false;
+            $bytes = openssl_random_pseudo_bytes(16, $strong);
+            if ($bytes !== false && $strong) {
+                return bin2hex($bytes);
+            }
+        }
+
+        return $this->fail('No cryptographically secure random source is available.');
+    }
+
+    /**
+     * Recursively convert query objects to arrays without changing scalar values.
+     *
+     * @param array|object $criteria
+     * @return array
+     */
+    private function normalizeCriteria($criteria)
+    {
+        if (is_object($criteria)) {
+            $criteria = get_object_vars($criteria);
+        }
+
+        $output = array();
+        foreach ($criteria as $key => $value) {
+            if (is_array($value) || is_object($value)) {
+                $output[$key] = $this->normalizeCriteria($value);
+            } else {
+                $output[$key] = $value;
+            }
+        }
+
+        return $output;
+    }
+
+    /** @return bool */
+    private function matchesCriteria($record, array $criteria)
+    {
+        if (is_object($record)) {
+            $record = get_object_vars($record);
+        }
+
+        if (!is_array($record)) {
+            return false;
+        }
+
+        foreach ($criteria as $key => $expected) {
+            if (!array_key_exists($key, $record)) {
+                return false;
+            }
+
+            $actual = $record[$key];
+            if (is_array($expected)) {
+                if (!$this->matchesCriteria($actual, $expected)) {
+                    return false;
+                }
+                continue;
+            }
+
+            if (is_array($actual) || is_object($actual)) {
+                return false;
+            }
+
+            if (strcasecmp($this->scalarToString($actual), $this->scalarToString($expected)) !== 0) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /** @return string */
+    private function scalarToString($value)
+    {
+        if ($value === null) {
+            return '';
+        }
+        if ($value === true) {
+            return '1';
+        }
+        if ($value === false) {
+            return '0';
+        }
+
+        return (string) $value;
+    }
+
+    /** @return false */
+    private function fail($message)
+    {
+        $this->lastError = $message;
+        return false;
+    }
 }
